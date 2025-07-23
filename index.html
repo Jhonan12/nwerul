@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ruleta Europea - Accesos y Análisis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #121212;
+      color: #f0f0f0;
+      padding: 20px;
+      max-width: 800px;
+      margin: auto;
+    }
+
+    h1 {
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    input, select, textarea {
+      padding: 8px;
+      font-size: 16px;
+      border: none;
+      border-radius: 4px;
+      margin: 5px 0;
+      background-color: #222;
+      color: white;
+      box-sizing: border-box;
+    }
+
+    button {
+      padding: 10px 15px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 4px;
+      color: white;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      background-color: #218838;
+    }
+
+    .tab-buttons {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .tab-content {
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 5px;
+      background-color: #1e1e1e;
+    }
+
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+
+    .logout {
+      float: right;
+      margin-top: -30px;
+    }
+
+    .info {
+      margin: 15px 0;
+      font-size: 15px;
+      color: #aaa;
+    }
+
+    textarea {
+      width: 100%;
+      height: 120px;
+      resize: vertical;
+    }
+    .inline-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 15px;
+      font-size: 16px;
+      text-align: center;
+    }
+    th, td {
+      border: 1px solid #555;
+      padding: 6px 8px;
+    }
+    th {
+      background-color: #444;
+    }
+    .numero-btn {
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      width: 40px;
+      height: 30px;
+      font-size: 16px;
+      border-radius: 4px;
+      transition: filter 0.3s;
+      color: white;
+      user-select: none;
+    }
+    .numero-btn:hover {
+      filter: brightness(1.2);
+    }
+    .btn-rojo {
+      background-color: #d64040;
+      box-shadow: 0 0 6px #d64040aa;
+    }
+    .btn-negro {
+      background-color: #2e2e2e;
+      box-shadow: 0 0 6px #222222cc;
+      color: #ddd;
+    }
+    .btn-verde {
+      background-color: #4caf50;
+      box-shadow: 0 0 6px #4caf50cc;
+    }
+    .progress-container {
+      width: 100%;
+      height: 25px;
+      background-color: #333;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 10px;
+      box-shadow: 0 0 8px rgba(144, 238, 144, 0.7);
+    }
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #a4ffb3, #7ee08a);
+      width: 0%;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 12px #a4ffb3, 0 0 15px #7ee08a;
+    }
+    .progress-text {
+      margin-bottom: 8px;
+      font-weight: bold;
+      text-align: center;
+      user-select: none;
+    }
+    .probabilidad-color {
+      margin-top: 15px;
+      font-size: 18px;
+      background-color: #222;
+      padding: 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 8px #28a745cc;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Pantalla Login -->
+<div id="loginScreen">
+  <h1>🎰 Iniciar sesión</h1>
+  <label>Usuario:</label>
+  <input type="text" id="loginUsuario" placeholder="Usuario" autocomplete="username"/>
+  <label>Clave:</label>
+  <input type="password" id="loginClave" placeholder="Clave" autocomplete="current-password"/>
+  <br />
+  <button onclick="iniciarSesion()">Ingresar</button>
+</div>
+
+<!-- Pantalla App -->
+<div id="appScreen" class="hidden">
+  <h1>🎯 Panel Ruleta Europea</h1>
+  <div class="logout">
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+  <div class="tab-buttons">
+    <button onclick="mostrarTab('principal')">Principal</button>
+    <button id="btnAccesos" onclick="mostrarTab('accesos')" class="hidden">Accesos</button>
+  </div>
+
+  <!-- PRINCIPAL -->
+  <div id="tabPrincipal" class="tab-content">
+    <h2>Principal</h2>
+    <p><strong>Historial (números separados por coma):</strong></p>
+    <textarea id="historialInput" placeholder="Ejemplo: 0,32,15,19,8,22,5,..." oninput="procesarHistorial()"></textarea>
+    
+    <div class="progress-text" id="precisionText">Cantidad de números: 0 | Precisión: N/A | 0%</div>
+    <div class="progress-container" aria-label="Barra de progreso de precisión">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+    
+    <div class="inline-group">
+      <label for="guardarSlot">Guardar en slot:</label>
+      <select id="guardarSlot">
+        <!-- Se llenará dinámicamente -->
+      </select>
+      <button onclick="guardarHistorial()">Guardar Historial</button>
+    </div>
+    <div class="inline-group">
+      <label for="cargarSlot">Cargar slot:</label>
+      <select id="cargarSlot">
+        <!-- Se llenará dinámicamente -->
+      </select>
+      <button onclick="cargarHistorial()">Cargar Historial</button>
+      <button onclick="borrarHistorial()">Borrar Historial</button>
+    </div>
+    <button onclick="procesarHistorial()">Procesar Historial</button>
+
+    <div class="section">
+      <p><strong>Generar tabla números 0 a 36 (haz clic en un número para ver probabilidad de próximo color rojo o negro y las 2 docenas más probables):</strong></p>
+      <button id="btnGenerarEstudio" onclick="generarEstudio()" disabled>Generar Tabla</button>
+    </div>
+
+    <div class="resultado" id="resultado" role="region" aria-live="polite"></div>
+    <div id="probabilidadColor" class="probabilidad-color" aria-live="polite" role="region" style="display:none;"></div>
+  </div>
+
+  <!-- ACCESOS -->
+  <div id="tabAccesos" class="tab-content hidden">
+    <h2>Gestión de usuarios</h2>
+    <label>Nuevo usuario:</label>
+    <input type="text" id="nuevoUsuario" placeholder="Nombre de usuario" />
+    <label>Clave:</label>
+    <input type="password" id="nuevaClave" placeholder="Clave" />
+    <label>Tipo:</label>
+    <select id="nuevoTipo">
+      <option value="admin">Admin</option>
+      <option value="estandar">Estándar</option>
+    </select>
+    <label>Cantidad de historiales permitidos (1 a 3):</label>
+    <select id="nuevoMaxHistoriales">
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3" selected>3</option>
+    </select>
+    <button onclick="crearUsuario()">Crear usuario</button>
+
+    <div class="info" id="listaUsuarios"></div>
+  </div>
+</div>
+
+<script>
+  // --- Login y Gestión de Usuarios ---
+  const defaultUser = {
+    usuario: 'admin',
+    clave: 'admin123',
+    tipo: 'admin',
+    maxHistoriales: 3
+  };
+
+  if (!localStorage.getItem("usuarios_ruleta")) {
+    localStorage.setItem("usuarios_ruleta", JSON.stringify([defaultUser]));
+  }
+
+  function iniciarSesion() {
+    const user = document.getElementById("loginUsuario").value.trim();
+    const clave = document.getElementById("loginClave").value.trim();
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios_ruleta")) || [];
+    const encontrado = usuarios.find(u => u.usuario === user && u.clave === clave);
+
+    if (!encontrado) {
+      alert("Usuario o clave incorrectos");
+      return;
+    }
+
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("appScreen").classList.remove("hidden");
+
+    if (encontrado.tipo === "admin") {
+      document.getElementById("btnAccesos").classList.remove("hidden");
+      document.getElementById("tabAccesos").classList.remove("hidden");
+    } else {
+      document.getElementById("btnAccesos").classList.add("hidden");
+      document.getElementById("tabAccesos").classList.add("hidden");
+    }
+
+    sessionStorage.setItem("usuarioActual", encontrado.usuario);
+    sessionStorage.setItem("tipoUsuario", encontrado.tipo);
+
+    actualizarSlotsPermitidos();
+
+    cargarHistorialUsuario();
+
+    mostrarTab('principal');
+    mostrarListaUsuarios();
+  }
+
+  function cerrarSesion() {
+    sessionStorage.clear();
+    document.getElementById("appScreen").classList.add("hidden");
+    document.getElementById("loginScreen").classList.remove("hidden");
+    document.getElementById("loginUsuario").value = "";
+    document.getElementById("loginClave").value = "";
+    historial = [];
+    document.getElementById("historialInput").value = "";
+    actualizarBarraProgreso(0);
+    document.getElementById("btnGenerarEstudio").disabled = true;
+    mostrarResultado("");
+    document.getElementById("probabilidadColor").style.display = "none";
+  }
+
+  function mostrarTab(tab) {
+    document.getElementById("tabPrincipal").classList.add("hidden");
+    document.getElementById("tabAccesos").classList.add("hidden");
+
+    if (tab === 'principal') {
+      document.getElementById("tabPrincipal").classList.remove("hidden");
+    } else if (tab === 'accesos') {
+      document.getElementById("tabAccesos").classList.remove("hidden");
+    }
+  }
+
+  function crearUsuario() {
+    const nuevoUsuario = document.getElementById("nuevoUsuario").value.trim();
+    const nuevaClave = document.getElementById("nuevaClave").value.trim();
+    const nuevoTipo = document.getElementById("nuevoTipo").value;
+    const maxHistoriales = parseInt(document.getElementById("nuevoMaxHistoriales").value, 10);
+
+    if (!nuevoUsuario || !nuevaClave) {
+      alert("Debes ingresar usuario y clave");
+      return;
+    }
+
+    if (maxHistoriales < 1 || maxHistoriales > 3) {
+      alert("La cantidad de historiales permitidos debe ser entre 1 y 3");
+      return;
+    }
+
+    let usuarios = JSON.parse(localStorage.getItem("usuarios_ruleta")) || [];
+
+    if (usuarios.some(u => u.usuario === nuevoUsuario)) {
+      alert("Este usuario ya existe.");
+      return;
+    }
+
+    usuarios.push({ 
+      usuario: nuevoUsuario, 
+      clave: nuevaClave, 
+      tipo: nuevoTipo,
+      maxHistoriales: maxHistoriales
+    });
+    localStorage.setItem("usuarios_ruleta", JSON.stringify(usuarios));
+
+    alert("Usuario creado correctamente.");
+    document.getElementById("nuevoUsuario").value = "";
+    document.getElementById("nuevaClave").value = "";
+    mostrarListaUsuarios();
+  }
+
+  function mostrarListaUsuarios() {
+    const usuarios = JSON.parse(localStorage.getItem("usuarios_ruleta")) || [];
+    const actual = sessionStorage.getItem("tipoUsuario");
+
+    if (actual !== "admin") return;
+
+    let html = "<h3>Usuarios registrados:</h3><ul>";
+    usuarios.forEach(u => {
+      const maxH = u.maxHistoriales || 3;
+      html += `<li><strong>${u.usuario}</strong> (${u.tipo}) - Historiales permitidos: ${maxH}</li>`;
+    });
+    html += "</ul>";
+    document.getElementById("listaUsuarios").innerHTML = html;
+  }
+
+  // --- Funciones de la pestaña principal ---
+  const MAX_DATOS = 10000;
+  let historial = [];
+
+  const rojos = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+  const negros = new Set([2,4,6,8,10,11,13,15,17,20,22,24,26,28,29,31,33,35]);
+
+  function obtenerDocena(numero) {
+    if (numero >= 1 && numero <= 12) return 1;
+    if (numero >= 13 && numero <= 24) return 2;
+    if (numero >= 25 && numero <= 36) return 3;
+    return 0;
+  }
+
+  function actualizarBarraProgreso(cantidad) {
+    const progressBar = document.getElementById("progressBar");
+    const precisionText = document.getElementById("precisionText");
+
+    let porcentaje = Math.min((cantidad / MAX_DATOS) * 100, 100);
+    progressBar.style.width = porcentaje + "%";
+
+    let nivel = "N/A";
+    if (cantidad >= 100 && cantidad <= 1500) nivel = "Bajo";
+    else if (cantidad >= 1501 && cantidad <= 5000) nivel = "Medio";
+    else if (cantidad >= 5001 && cantidad <= 10000) nivel = "Alto";
+    else if (cantidad < 100) nivel = "Muy bajo";
+
+    precisionText.textContent = `Cantidad de números: ${cantidad} | Precisión: ${nivel} | ${porcentaje.toFixed(1)}%`;
+  }
+
+  function procesarHistorial() {
+    const input = document.getElementById("historialInput").value;
+    if (!input.trim()) {
+      actualizarBarraProgreso(0);
+      document.getElementById("btnGenerarEstudio").disabled = true;
+      mostrarResultado("");
+      document.getElementById("probabilidadColor").style.display = "none";
+      historial = [];
+      return;
+    }
+    const numeros = input.split(",").map(n => parseInt(n.trim())).filter(n => !isNaN(n) && n >= 0 && n <= 36);
+    if (numeros.length === 0) {
+      actualizarBarraProgreso(0);
+      document.getElementById("btnGenerarEstudio").disabled = true;
+      mostrarResultado("");
+      document.getElementById("probabilidadColor").style.display = "none";
+      historial = [];
+      return;
+    }
+    historial = numeros;
+    actualizarBarraProgreso(historial.length);
+    document.getElementById("btnGenerarEstudio").disabled = false;
+    mostrarResultado("Historial procesado. Ahora puedes generar la tabla.");
+    document.getElementById("probabilidadColor").style.display = "none";
+  }
+
+  function generarEstudio() {
+    const resultadoDiv = document.getElementById("resultado");
+    let html = '<table><tbody><tr>';
+    for(let i = 0; i <= 36; i++) {
+      let claseColor = "";
+      if (i === 0) claseColor = "btn-verde";
+      else if (rojos.has(i)) claseColor = "btn-rojo";
+      else if (negros.has(i)) claseColor = "btn-negro";
+
+      html += `<td><button class="numero-btn ${claseColor}" onclick="mostrarProbabilidadColor(${i})">${i}</button></td>`;
+      if ((i + 1) % 6 === 0) html += "</tr><tr>";
+    }
+    html += '</tr></tbody></table>';
+    resultadoDiv.innerHTML = html;
+    document.getElementById("probabilidadColor").style.display = "none";
+  }
+
+  function mostrarProbabilidadColor(num) {
+    if (historial.length < 1) {
+      alert("Por favor ingresa y procesa un historial válido primero.");
+      return;
+    }
+
+    const rojosEnHistorial = historial.filter(n => rojos.has(n)).length;
+    const negrosEnHistorial = historial.filter(n => negros.has(n)).length;
+    const totalValidos = rojosEnHistorial + negrosEnHistorial;
+
+    if (totalValidos === 0) {
+      alert("No hay números rojos ni negros en el historial para calcular probabilidad.");
+      return;
+    }
+
+    // Probabilidad próxima bola roja o negra basados en historial (simple frecuencia)
+    let probRojo = rojosEnHistorial / totalValidos;
+    let probNegro = negrosEnHistorial / totalValidos;
+
+    // Probabilidad docenas más probables (más frecuentes)
+    const docenasCount = { 1:0, 2:0, 3:0 };
+    historial.forEach(n => {
+      let d = obtenerDocena(n);
+      if (d) docenasCount[d]++;
+    });
+
+    // Ordenar docenas por frecuencia
+    const docenasOrdenadas = Object.entries(docenasCount).sort((a,b) => b[1] - a[1]);
+
+    let texto = `⚡ Has seleccionado el número: ${num}\n\n`;
+    texto += `Probabilidad estimada próxima bola:\n`;
+    texto += `🔴 Rojo: ${(probRojo*100).toFixed(2)}%\n`;
+    texto += `⚫ Negro: ${(probNegro*100).toFixed(2)}%\n\n`;
+    texto += `Docenas más frecuentes en historial:\n`;
+    texto += `🥇 Docena ${docenasOrdenadas[0][0]} (números ${(docenasOrdenadas[0][0]-1)*12+1} a ${(docenasOrdenadas[0][0])*12}) con ${docenasOrdenadas[0][1]} apariciones\n`;
+    texto += `🥈 Docena ${docenasOrdenadas[1][0]} (números ${(docenasOrdenadas[1][0]-1)*12+1} a ${(docenasOrdenadas[1][0])*12}) con ${docenasOrdenadas[1][1]} apariciones`;
+
+    const divProb = document.getElementById("probabilidadColor");
+    divProb.textContent = texto;
+    divProb.style.display = "block";
+  }
+
+  function mostrarResultado(mensaje) {
+    document.getElementById("resultado").textContent = mensaje;
+  }
+
+  // --- Guardar y cargar historial por usuario y slot ---
+  function actualizarSlotsPermitidos() {
+    const usuario = sessionStorage.getItem("usuarioActual");
+    const usuarios = JSON.parse(localStorage.getItem("usuarios_ruleta")) || [];
+    const userData = usuarios.find(u => u.usuario === usuario);
+    const maxSlots = userData ? userData.maxHistoriales || 3 : 3;
+
+    const guardarSelect = document.getElementById("guardarSlot");
+    const cargarSelect = document.getElementById("cargarSlot");
+    guardarSelect.innerHTML = "";
+    cargarSelect.innerHTML = "";
+
+    for (let i=1; i<=maxSlots; i++) {
+      let optionG = document.createElement("option");
+      optionG.value = i;
+      optionG.textContent = `Slot ${i}`;
+      guardarSelect.appendChild(optionG);
+
+      let optionC = document.createElement("option");
+      optionC.value = i;
+      optionC.textContent = `Slot ${i}`;
+      cargarSelect.appendChild(optionC);
+    }
+  }
+
+  function getClaveHistorial(usuario, slot) {
+    return `historial_${usuario}_slot${slot}`;
+  }
+
+  function guardarHistorial() {
+    const usuario = sessionStorage.getItem("usuarioActual");
+    if (!usuario) {
+      alert("No hay usuario activo.");
+      return;
+    }
+
+    const slot = document.getElementById("guardarSlot").value;
+    if (!slot) {
+      alert("Selecciona un slot para guardar.");
+      return;
+    }
+
+    if (!historial || historial.length === 0) {
+      alert("No hay historial válido para guardar.");
+      return;
+    }
+
+    const clave = getClaveHistorial(usuario, slot);
+    localStorage.setItem(clave, JSON.stringify(historial));
+    alert(`Historial guardado en slot ${slot}`);
+    cargarSlots();
+  }
+
+  function cargarHistorial() {
+    const usuario = sessionStorage.getItem("usuarioActual");
+    if (!usuario) {
+      alert("No hay usuario activo.");
+      return;
+    }
+
+    const slot = document.getElementById("cargarSlot").value;
+    if (!slot) {
+      alert("Selecciona un slot para cargar.");
+      return;
+    }
+
+    const clave = getClaveHistorial(usuario, slot);
+    const datos = localStorage.getItem(clave);
+    if (!datos) {
+      alert(`No hay historial guardado en slot ${slot}`);
+      return;
+    }
+
+    try {
+      const lista = JSON.parse(datos);
+      if (!Array.isArray(lista)) throw new Error("Datos inválidos");
+
+      historial = lista;
+      document.getElementById("historialInput").value = lista.join(",");
+      procesarHistorial();
+      alert(`Historial cargado desde slot ${slot}`);
+    } catch(e) {
+      alert("Error al cargar historial: datos corruptos.");
+    }
+  }
+
+  function borrarHistorial() {
+    const usuario = sessionStorage.getItem("usuarioActual");
+    if (!usuario) {
+      alert("No hay usuario activo.");
+      return;
+    }
+
+    const slot = document.getElementById("cargarSlot").value;
+    if (!slot) {
+      alert("Selecciona un slot para borrar.");
+      return;
+    }
+
+    const clave = getClaveHistorial(usuario, slot);
+    localStorage.removeItem(clave);
+    alert(`Historial borrado en slot ${slot}`);
+
+    // Si borramos slot cargado en textarea, limpiar si corresponde
+    const actualValue = document.getElementById("historialInput").value;
+    if (actualValue && actualValue.length > 0) {
+      const guardado = localStorage.getItem(clave);
+      if (!guardado) {
+        document.getElementById("historialInput").value = "";
+        historial = [];
+        procesarHistorial();
+      }
+    }
+
+    cargarSlots();
+  }
+
+  function cargarSlots() {
+    // Actualiza selects con slots y muestra si hay datos guardados
+    const usuario = sessionStorage.getItem("usuarioActual");
+    if (!usuario) return;
+
+    const usuarios = JSON.parse(localStorage.getItem("usuarios_ruleta")) || [];
+    const userData = usuarios.find(u => u.usuario === usuario);
+    if (!userData) return;
+
+    const maxSlots = userData.maxHistoriales || 3;
+
+    // No hace falta llenar selects, ya se actualizan en actualizarSlotsPermitidos
+    // Solo actualiza texto de slots con datos
+    // Podrías añadir detalles de fechas u otra info aquí si quieres
+  }
+
+  function cargarHistorialUsuario() {
+    actualizarSlotsPermitidos();
+    cargarSlots();
+  }
+
+  // Auto login si ya hay sesión
+  window.onload = () => {
+    const usuario = sessionStorage.getItem("usuarioActual");
+    const tipo = sessionStorage.getItem("tipoUsuario");
+    if (usuario && tipo) {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("appScreen").classList.remove("hidden");
+
+      if (tipo === "admin") {
+        document.getElementById("btnAccesos").classList.remove("hidden");
+        document.getElementById("tabAccesos").classList.remove("hidden");
+      } else {
+        document.getElementById("btnAccesos").classList.add("hidden");
+        document.getElementById("tabAccesos").classList.add("hidden");
+      }
+
+      actualizarSlotsPermitidos();
+      cargarHistorialUsuario();
+      mostrarTab('principal');
+      mostrarListaUsuarios();
+    }
+  };
+</script>
+</body>
+</html>
